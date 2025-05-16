@@ -1,6 +1,10 @@
 import torch
 import os
 from PIL import Image
+import os
+import time
+from transformers import pipeline
+
 from transformers import (
     AutoModelForImageTextToText,
     AutoProcessor
@@ -113,5 +117,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ImageCaptioner": "ImageCaptioner helps to generate captions for images in a folder and rename them sequentially.",
+    "ImageCaptioner": "Image Captioner",
 }

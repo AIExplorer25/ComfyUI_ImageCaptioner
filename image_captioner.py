@@ -31,23 +31,24 @@ class ImageCaptioner:
     OUTPUT_NODE = True
     CATEGORY = "utils"
 
-    # Class variable to store the last inputs and outputs
-    _cache = {}
+
     
     def generate_captions(self,rename_images_sequencially,image_folder_path, model_id, system_message,):
         # Handle case where inputs are not lists
         print("inside generate_captions function...")
         if rename_images_sequencially:
             # Rename images in the folder sequentially
+            print("inside rename image if ...")
             for i, image_name in enumerate(os.listdir(image_folder_path)):
-                if image_name.endswith(".jpg") or image_name.endswith(".png"):
+                if image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
                     new_image_name = f"{i+1}.jpg"
                     os.rename(os.path.join(image_folder_path, image_name), os.path.join(image_folder_path, new_image_name))
                     print(f"Renamed {image_name} to {new_image_name}")
         else:
             # Rename images in the folder sequentially
+            print("inside rename image else ...")
             for i, image_name in enumerate(os.listdir(image_folder_path)):
-                if image_name.endswith(".jpg") or image_name.endswith(".png"):
+                if image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
                     new_image_name = f"{i+1}.jpg"
                     os.rename(os.path.join(image_folder_path, image_name), os.path.join(image_folder_path, new_image_name))
                     print(f"Renamed {image_name} to {new_image_name}")
@@ -65,8 +66,9 @@ class ImageCaptioner:
         status=[]
         system_message = "You are an expert image describer."
         for image in os.listdir(image_folder_path):
-            if image.endswith(".jpg") or image.endswith(".png"):
+            if image.endswith(".jpg") or image.endswith(".png") or image_name.endswith(".jpeg"):
                 image_path = os.path.join(image_folder_path, image)
+                image_name = os.path.basename(image_path)
                 image = Image.open(image_path).convert("RGB")
                 messages = [
                 {
@@ -97,18 +99,19 @@ class ImageCaptioner:
                     generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
                 )
                 caption = output_text[0]
-                print(f"Caption for {image}: {caption}")
+                print(f"Caption for {image_name}: {caption}")
                 # Save the caption to a file
-                caption_file_path = os.path.join(image_folder_path, f"{os.path.splitext(image)[0]}.txt")
+                caption_file_path = os.path.join(image_folder_path, f"{os.path.splitext(image_name)[0]}.txt")
                 with open(caption_file_path, "w") as caption_file:
                     caption_file.write(caption)
-                status.append(f"Caption for {image}: {caption}")
+                status.append(f"Caption for {image_name}: {caption}")
 
 
 
 
         
         return ", ".join(status),
+
 
    
 

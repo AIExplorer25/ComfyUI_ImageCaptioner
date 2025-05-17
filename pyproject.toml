@@ -1,0 +1,15 @@
+[project]
+name = "imagecaptioner"
+description = "This custom node helps to generate cation for images for lora training."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/AIExplorer25/ComfyUI_ImageCaptioner"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI_ImageCaptioner"
+Icon = ""

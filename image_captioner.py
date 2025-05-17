@@ -113,7 +113,98 @@ class ImageCaptioner:
         return ", ".join(status),
 
 
+
+class ImageCaptionerPostProcessing:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                 "image_folder_path": ("STRING", {"multiline": True, "default": ""}),
+                "trigger_word": ("STRING", {"multiline": True, "default": ""}),
+                "text_replace": ("STRING", {"multiline": True, "default": ""}),
+            }
+        }
+
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("updated_status",)
+    FUNCTION = "postprocessing_captions"
+    OUTPUT_NODE = True
+    CATEGORY = "utils"
+
+
+    
+    def postprocessing_captions(self,image_folder_path, trigger_word, text_replace,):
+        # Handle case where inputs are not lists
+        print("inside generate_captions function...")
+            # Rename images in the folder sequentially
+        print("inside rename image if ...")
+        status=[]
+        for i, text_name in enumerate(os.listdir(image_folder_path)):
+            if text_name.endswith(".txt") or text_name.endswith(".text"):
+                    caption_file_path = os.path.join(image_folder_path, text_name)
+                    with open(caption_file_path, "r") as caption_file:
+                        captiontext = caption_file.read()
+                    # Replace the trigger word with the new text
+                    text_replace_splitted=text_replace.split(",")
+                    for text2replace in text_replace_splitted:
+                        if captiontext.find(text2replace) != -1:
+                            captiontext = captiontext.replace(text2replace, "")
+                    captiontextFinal = captiontext +" , "+ trigger_word
+                    
+                    # Save the modified caption back to the file
+                    with open(caption_file_path, "w") as caption_file:
+                        caption_file.write(captiontextFinal)
+                    print(f"Updated caption in {text_name} to: {captiontextFinal}")
+                    status.append(f"Updated caption in {text_name} to: {captiontextFinal}")
+            else:
+                print(f"No caption found in {text_name} to update.")
+
+        
+        return ", ".join(status),        
+
+
    
+
+class CheckImageCaptionsData:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                 "image_folder_path": ("STRING", {"multiline": True, "default": ""}),
+                 "display_first_nchars": ("INT", { "default": "20", "min": 0, "max": 100}),
+                 
+            }
+        }
+
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("updated_status",)
+    FUNCTION = "postprocessing_checkcaptionsdata"
+    OUTPUT_NODE = True
+    CATEGORY = "utils"
+
+
+    
+    def postprocessing_checkcaptionsdata(self,image_folder_path,display_first_nchars,):
+        # Handle case where inputs are not lists
+        print("inside generate_captions function...")
+            # Rename images in the folder sequentially
+        print("inside rename image if ...")
+        status=[]
+        for i, text_name in enumerate(os.listdir(image_folder_path)):
+            if text_name.endswith(".txt") or text_name.endswith(".text"):
+                    caption_file_path = os.path.join(image_folder_path, text_name)
+                    with open(caption_file_path, "r") as caption_file:
+                        captiontext = caption_file.read()
+                    first_n_chars = captiontext[:display_first_nchars]
+                    status.append(first_n_chars)
+
+            else:
+                print(f"No caption found in {text_name} to update.")
+
+        
+        return "-------/r/n ".join(status),    
 
 class Quen3Helper:
     @classmethod
@@ -128,7 +219,7 @@ class Quen3Helper:
     
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("quen3_response",)
-    FUNCTION = "generate_captions"
+    FUNCTION = "generate_response"
     OUTPUT_NODE = True
     CATEGORY = "utils"
     def generate_response(self,your_prompt, model_id,):
@@ -184,9 +275,14 @@ class Quen3Helper:
 NODE_CLASS_MAPPINGS = {
     "ImageCaptioner": ImageCaptioner,
     "Quen3Helper": Quen3Helper,
+    "CheckImageCaptionsData": CheckImageCaptionsData,
+    "ImageCaptionerPostProcessing": ImageCaptionerPostProcessing,
+    
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageCaptioner": "Image Captioner",
     "Quen3Helper": "Quen3 Helper",
+    "CheckImageCaptionsData": "Check Image Captions Data",
+    "ImageCaptionerPostProcessing": "Image Captioner PostProcessing",
 }

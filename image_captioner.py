@@ -4,11 +4,15 @@ from PIL import Image
 import os
 import time
 from transformers import pipeline
+from llama_cpp import Llama
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import (
     AutoModelForImageTextToText,
     AutoProcessor
 )
+import json
+
+
 
 class ImageCaptioner:
     @classmethod
@@ -270,13 +274,58 @@ class Quen3Helper:
         return content,
 
 
+class Quen3HelperGGUF:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "your_prompt": ("STRING", {"multiline": True, "default": ""}),
+                "model_path": ("STRING", {"multiline": True, "default": ""}),
+                "model_name": ("STRING", {"multiline": True, "default": ""}),
+            }
+        }
 
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("quen3_response",)
+    FUNCTION = "generate_response_gguf"
+    OUTPUT_NODE = True
+    CATEGORY = "utils"
+    def generate_response_gguf(self,your_prompt, model_path,model_name,):
+        # Load the model and processor  .from_pretrained("/path/to/ggml-model.bin", model_type="gpt2")
+
+
+        # model = AutoModelForCausalLM.from_pretrained("/workspace/ComfyUI/models/Qwen3gguf/Qwen3-30B-A6B-16-Extreme.Q6_K.gguf", model_type="gpt2")
+        llm = Llama(
+      model_path="/workspace/ComfyUI/models/Qwen3gguf/Qwen3-30B-A6B-16-Extreme.Q6_K.gguf",  # Download the model file first
+      n_ctx=4096,  # The max sequence length to use - note that longer sequence lengths require much more resour          
+      n_gpu_layers=80         # The number of layers to offload to GPU, if you have GPU acceleration available
+    )
+        # prepare the model input  model_type="qwen3"
+        print("supports_gpu........")
+        
+        prompt =your_prompt or "Give me a short introduction to large language model."
+        output = llm(
+          "<|system|>\n{system_message}</s>\n<|user|>\n{Give me a short introduction to large language model.}</s>\n<|assistant|>", # Prompt
+          max_tokens=512,  # Generate up to 512 tokens
+          stop=["</s>"],   # Example stop token - not necessarily correct for this specific model! Please check before using.
+          echo=True        # Whether to echo the prompt
+        )
+        
+         # response=model(prompt)
+        caption_file_path = os.path.join(model_path, "quenresponse.txt")
+        with open(caption_file_path, "w") as caption_file:
+            json.dump(output, caption_file, indent=2)
+        tosend=json.dumps(output)
+        return tosend,
 
 NODE_CLASS_MAPPINGS = {
     "ImageCaptioner": ImageCaptioner,
     "Quen3Helper": Quen3Helper,
     "CheckImageCaptionsData": CheckImageCaptionsData,
     "ImageCaptionerPostProcessing": ImageCaptionerPostProcessing,
+    "Quen3HelperGGUF": Quen3HelperGGUF,
+    
     
 }
 
@@ -285,4 +334,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Quen3Helper": "Quen3 Helper",
     "CheckImageCaptionsData": "Check Image Captions Data",
     "ImageCaptionerPostProcessing": "Image Captioner PostProcessing",
+    "Quen3HelperGGUF": "Quen3Helper GGUF",
 }

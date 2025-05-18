@@ -232,9 +232,10 @@ class Quen3Helper:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype="auto",
+            torch_dtype=torch.bfloat16,
+            attn_implementation="flash_attention_2",
             device_map="auto"
-        )
+        ).eval()
         # prepare the model input
         prompt =your_prompt or "Give me a short introduction to large language model."
         messages = [
@@ -244,14 +245,19 @@ class Quen3Helper:
             messages,
             tokenize=False,
             add_generation_prompt=True,
-            enable_thinking=True # Switches between thinking and non-thinking modes. Default is True.
+            enable_thinking=True # Switches between thinking and non-thinking modes. Default is True. .to(model.device)
         )
         model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
         # conduct text completion
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=32768
+            max_new_tokens=4096,
+            use_cache=True,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+            num_beams=1,
+            early_stopping=True
         )
         output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
 
@@ -279,9 +285,15 @@ class Quen3HelperGGUF:
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "system_message": ("STRING", {"multiline": True, "default": ""}),
                 "your_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "model_path": ("STRING", {"multiline": True, "default": ""}),
                 "model_name": ("STRING", {"multiline": True, "default": ""}),
+                "n_gpu_layers": ("INT", {"default": 80, "min": 24,"max": 20000}),
+                "n_ctx": ("INT", {"default": 8192,"min": 24,"max": 20000}),
+                "max_tokens": ("INT", {"default": 8192,"min": 24,"max": 20000}),
+                
+                
             }
         }
 
@@ -291,33 +303,45 @@ class Quen3HelperGGUF:
     FUNCTION = "generate_response_gguf"
     OUTPUT_NODE = True
     CATEGORY = "utils"
-    def generate_response_gguf(self,your_prompt, model_path,model_name,):
+    def generate_response_gguf(self,system_message,your_prompt, model_path,model_name,n_gpu_layers,n_ctx,max_tokens,):
         # Load the model and processor  .from_pretrained("/path/to/ggml-model.bin", model_type="gpt2")
 
 
         # model = AutoModelForCausalLM.from_pretrained("/workspace/ComfyUI/models/Qwen3gguf/Qwen3-30B-A6B-16-Extreme.Q6_K.gguf", model_type="gpt2")
+        full_model_path = os.path.join(model_path, model_name)
         llm = Llama(
-      model_path="/workspace/ComfyUI/models/Qwen3gguf/Qwen3-30B-A6B-16-Extreme.Q6_K.gguf",  # Download the model file first
-      n_ctx=4096,  # The max sequence length to use - note that longer sequence lengths require much more resour          
-      n_gpu_layers=80         # The number of layers to offload to GPU, if you have GPU acceleration available
-    )
+        model_path=full_model_path,
+        n_gpu_layers=n_gpu_layers, # Uncomment to use GPU acceleration
+      # seed=1337, # Uncomment to set a specific seed
+        n_ctx=n_ctx, # Uncomment to increase the context window
+)
         # prepare the model input  model_type="qwen3"
         print("supports_gpu........")
         
-        prompt =your_prompt or "Give me a short introduction to large language model."
-        output = llm(
-          "<|system|>\n{system_message}</s>\n<|user|>\n{Give me a short introduction to large language model.}</s>\n<|assistant|>", # Prompt
-          max_tokens=512,  # Generate up to 512 tokens
-          stop=["</s>"],   # Example stop token - not necessarily correct for this specific model! Please check before using.
-          echo=True        # Whether to echo the prompt
-        )
+
+        system_message = system_message or "You are a knowledgeable and creative historian. You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem."
+        user_message =your_prompt or "Write a long, detailed story on the history of the Kohinoor diamond and how it ended up in Britain."
         
+        prompt = f"""<|system|>
+        {system_message}</s>
+        <|user|>
+        {user_message}</s>
+        <|assistant|>"""
+        
+        
+        output =llm(
+                  prompt, # Prompt
+                  max_tokens=max_tokens,  # Generate up to 512 tokens
+                  stop=["</s>"],   # Example stop token - not necessarily correct for this specific model! Please check before using.
+                  echo=False        # Whether to echo the prompt
+                )
+        response_text = output["choices"][0]["text"]
          # response=model(prompt)
         caption_file_path = os.path.join(model_path, "quenresponse.txt")
         with open(caption_file_path, "w") as caption_file:
             json.dump(output, caption_file, indent=2)
         tosend=json.dumps(output)
-        return tosend,
+        return response_text,
 
 NODE_CLASS_MAPPINGS = {
     "ImageCaptioner": ImageCaptioner,

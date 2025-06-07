@@ -44,7 +44,7 @@ class ImageCaptioner:
             # Rename images in the folder sequentially
             print("inside rename image if ...")
             for i, image_name in enumerate(os.listdir(image_folder_path)):
-                if image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
+                if image_name.endswith(".JPG") or image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
                     new_image_name = f"{i+1}.jpg"
                     os.rename(os.path.join(image_folder_path, image_name), os.path.join(image_folder_path, new_image_name))
                     print(f"Renamed {image_name} to {new_image_name}")
@@ -52,7 +52,7 @@ class ImageCaptioner:
             # Rename images in the folder sequentially
             print("inside rename image else ...")
             for i, image_name in enumerate(os.listdir(image_folder_path)):
-                if image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
+                if image_name.endswith(".JPG") or image_name.endswith(".jpg") or image_name.endswith(".png") or image_name.endswith(".jpeg"):
                     new_image_name = f"{i+1}.jpg"
                     os.rename(os.path.join(image_folder_path, image_name), os.path.join(image_folder_path, new_image_name))
                     print(f"Renamed {image_name} to {new_image_name}")
@@ -70,7 +70,7 @@ class ImageCaptioner:
         status=[]
         system_message = "You are an expert image describer."
         for image in os.listdir(image_folder_path):
-            if image.endswith(".jpg") or image.endswith(".png") or image_name.endswith(".jpeg"):
+            if image_name.endswith(".JPG") or image.endswith(".jpg") or image.endswith(".png") or image_name.endswith(".jpeg"):
                 image_path = os.path.join(image_folder_path, image)
                 image_name = os.path.basename(image_path)
                 image = Image.open(image_path).convert("RGB")
@@ -154,7 +154,7 @@ class ImageCaptionerPostProcessing:
                     for text2replace in text_replace_splitted:
                         if captiontext.find(text2replace) != -1:
                             captiontext = captiontext.replace(text2replace, "")
-                    captiontextFinal = captiontext +" , "+ trigger_word
+                    captiontextFinal = trigger_word +" , "+ captiontext 
                     
                     # Save the modified caption back to the file
                     with open(caption_file_path, "w") as caption_file:

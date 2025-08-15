@@ -342,9 +342,83 @@ class Quen3HelperGGUF:
             json.dump(output, caption_file, indent=2)
         tosend=json.dumps(output)
         return response_text,
+class SingleImageCaptioner:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "model_id": ("STRING", {"multiline": True, "default": "Qwen/Qwen2-VL-7B-Instruct"}),
+                "system_message": ("STRING", {"multiline": True, "default": "You are an expert image describer."}),
+            }
+        }
 
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("caption",)
+    FUNCTION = "caption_image"
+    OUTPUT_NODE = False
+    CATEGORY = "utils"
+
+    def caption_image(self, image, model_id, system_message):
+        # Convert ComfyUI image tensor to PIL Image
+        import numpy as np
+        
+        # ComfyUI images are in format [batch, height, width, channels] with values 0-1
+        if len(image.shape) == 4:
+            image = image[0]  # Take first image from batch
+        
+        # Convert from 0-1 to 0-255 and to uint8
+        image_np = (image.cpu().numpy() * 255).astype(np.uint8)
+        pil_image = Image.fromarray(image_np)
+        
+        # Load the model and processor
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_id,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            attn_implementation="sdpa",
+        )
+        min_pixels = 512*28*28
+        max_pixels = 1600*28*28
+        
+        processor = AutoProcessor.from_pretrained(model_id, max_pixels=max_pixels, min_pixels=min_pixels)
+        
+        messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": system_message}],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Describe this image."},
+                    {"type": "image", "image": pil_image},
+                ],
+            },
+        ]
+        
+        text = processor.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = processor(
+            text=[text],
+            images=pil_image,
+            padding=True,
+            return_tensors="pt",
+        )
+        inputs = inputs.to(model.device)
+        generated_ids = model.generate(**inputs, max_new_tokens=512, min_p=0.1, do_sample=True, temperature=1.5)
+        generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
+        output_text = processor.batch_decode(
+            generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+        )
+        caption = output_text[0]
+        
+        return (caption,)
 NODE_CLASS_MAPPINGS = {
     "ImageCaptioner": ImageCaptioner,
+    "SingleImageCaptioner": SingleImageCaptioner,
     "Quen3Helper": Quen3Helper,
     "CheckImageCaptionsData": CheckImageCaptionsData,
     "ImageCaptionerPostProcessing": ImageCaptionerPostProcessing,
@@ -355,6 +429,7 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageCaptioner": "Image Captioner",
+    "SingleImageCaptioner": "Single Image Captioner",
     "Quen3Helper": "Quen3 Helper",
     "CheckImageCaptionsData": "Check Image Captions Data",
     "ImageCaptionerPostProcessing": "Image Captioner PostProcessing",

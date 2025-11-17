@@ -4,6 +4,11 @@ from PIL import Image
 import os
 import time
 from transformers import pipeline
+import os
+import json
+import torch
+from transformers import pipeline
+
 from llama_cpp import Llama
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import (
@@ -416,13 +421,18 @@ class SingleImageCaptioner:
         caption = output_text[0]
         
         return (caption,)
+
+
+
 NODE_CLASS_MAPPINGS = {
     "ImageCaptioner": ImageCaptioner,
     "SingleImageCaptioner": SingleImageCaptioner,
     "Quen3Helper": Quen3Helper,
     "CheckImageCaptionsData": CheckImageCaptionsData,
     "ImageCaptionerPostProcessing": ImageCaptionerPostProcessing,
-    "Quen3HelperGGUF": Quen3HelperGGUF,
+    "Quen3HelperGGUF": Quen3HelperGGUF
+    
+    
     
     
 }
@@ -433,5 +443,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Quen3Helper": "Quen3 Helper",
     "CheckImageCaptionsData": "Check Image Captions Data",
     "ImageCaptionerPostProcessing": "Image Captioner PostProcessing",
-    "Quen3HelperGGUF": "Quen3Helper GGUF",
+    "Quen3HelperGGUF": "Quen3Helper GGUF"
+    
+    
 }
